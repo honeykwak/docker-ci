@@ -8,54 +8,60 @@ on:
       - '**'
 
 jobs:
-  detect-and-deploy:
-    permissions:
-      contents: write
+  push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Docker meta
-        id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v1
-        with:
-          images: honeykwak/grayround
-          tag-semver: |
-            {{version}}
-            {{major}}.{{minor}}
+      - name: Get the latest tag
+        id: latest_tag
+        run: echo ::set-output name=tag::$(git describe --tags `git rev-list --tags --max-count=1`)
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+      - name: Calculate new tag
+        id: new_tag
+        run: |
+          LATEST_TAG=${{ steps.latest_tag.outputs.tag }}
+          IFS='.' read -ra ADDR <<< "$LATEST_TAG"
+          NEW_VERSION=$(echo "${ADDR[0]}.$((${ADDR[1]} + 1))")
+          echo ::set-output name=version::$NEW_VERSION
+        shell: bash
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-
+      # Docker 이미지 빌드 및 푸시
       - name: Build and push Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: ${{ steps.docker_meta.outputs.tags }}
+          tags: honeykwak/grayround:${{ steps.new_tag.outputs.version }}
           labels: ${{ steps.docker_meta.outputs.labels }}
 
-      - name: Set up Git
+      # grayround.yaml 파일 업데이트
+      - name: Update grayround.yaml
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          NEW_TAG="${{ steps.new_tag.outputs.version }}"
+          sed -i "s|image: honeykwak/grayround:.*|image: honeykwak/grayround:$NEW_TAG|g" grayround.yaml
 
-      - name: Update kustomization.yaml
+      # grayround.yaml 파일 변경 여부 확인
+      - name: Check if grayround.yaml was changed
+        id: check_file
         run: |
-          cd k8s
-          kustomize edit set image honeykwak/grayround:${{ steps.docker_meta.outputs.tags }}
-          git add kustomization.yaml
-          git commit -m "Update image to ${{ steps.docker_meta.outputs.tags }}"
-          git push
+          if git diff --exit-code; then
+            echo "No changes in grayround.yaml"
+            echo ::set-output name=changed::false
+          else
+            echo "grayround.yaml was changed"
+            echo ::set-output name=changed::true
+          fi
+
+      # 변경 사항 커밋 및 푸시
+      - name: Commit and push changes
+        if: steps.check_file.outputs.changed == 'true'
+        run: |
+          git config --global user.name 'testing'
+          git config --global user.email 'test@gmail.com'
+          git add grayround.yaml
+          git commit -m "Update grayround.yaml with new image tag ${{ steps.new_tag.outputs.version }}"
+          git push origin master
 
