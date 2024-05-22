@@ -18,7 +18,7 @@ spec:
         app: grayround
     spec:
       containers:
-      - image: honeykwak/grayround:v1.1
+      - image: honeykwak/grayround:master
         name: grayround
         ports:
         - containerPort: 80
