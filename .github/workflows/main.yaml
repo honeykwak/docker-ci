@@ -1,19 +1,29 @@
-name: grayround project
+name: Build and Push Docker Image
 
 on:
   push:
     branches:
+      - 'main'
       - 'master'
     tags:
       - '**'
 
 jobs:
-  push:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
       - name: Get the latest tag
         id: latest_tag
@@ -31,7 +41,6 @@ jobs:
           echo ::set-output name=version::$NEW_VERSION
         shell: bash
 
-      # Docker 이미지 빌드 및 푸시
       - name: Build and push Docker Image
         uses: docker/build-push-action@v4
         with:
@@ -39,15 +48,12 @@ jobs:
           push: true
           # 태그에 v 접두사를 포함하여 새 버전을 적용합니다.
           tags: honeykwak/grayround:${{ steps.new_tag.outputs.version }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
 
-      # grayround.yaml 파일 업데이트
       - name: Update grayround.yaml
         run: |
           NEW_TAG="${{ steps.new_tag.outputs.version }}"
           sed -i "s|image: honeykwak/grayround:.*|image: honeykwak/grayround:$NEW_TAG|g" grayround.yaml
 
-      # grayround.yaml 파일 변경 여부 확인
       - name: Check if grayround.yaml was changed
         id: check_file
         run: |
@@ -59,7 +65,6 @@ jobs:
             echo ::set-output name=changed::true
           fi
 
-      # 변경 사항 커밋 및 푸시
       - name: Commit and push changes
         if: steps.check_file.outputs.changed == 'true'
         run: |
