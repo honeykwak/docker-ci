@@ -48,6 +48,9 @@ jobs:
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
   
+      - name: Debug Docker Meta Outputs
+        run: echo "Docker meta tags: ${{ steps.docker_meta.outputs.tags }}"
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -58,30 +61,4 @@ jobs:
           release_name: Release ${{ steps.docker_meta.outputs.tags }}
           draft: false
           prerelease: false
-
-  rollback:
-    runs-on: ubuntu-latest
-    needs: push
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Get rollback version
-        id: get_rollback_version
-        run: |
-          VERSION=${{ github.event.inputs.version }}
-          echo "ROLLBACK_VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Update deploy.yaml for rollback
-        run: |
-          sed -i 's|image: honeykwak/grayround:.*|image: honeykwak/grayround:${{ env.ROLLBACK_VERSION }}|' websource/deploy.yaml
-
-      - name: Commit and push rollback changes
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git add websource/deploy.yaml
-          git commit -m "Rollback to version ${{ env.ROLLBACK_VERSION }}"
-          git push origin master
 
