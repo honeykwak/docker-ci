@@ -1,26 +1,3 @@
-Skip to content
-Navigation Menu
-honeykwak
-/
-docker-ci
-
-Type / to search
-
-Code
-Issues
-Pull requests
-Actions
-Projects
-Wiki
-Security
-Insights
-Settings
-grayround project
-Create main.yml #2
-Jobs
-Run details
-Workflow file for this run
-.github/workflows/main.yml at 0e12149
 name: grayround project
 
 on:
@@ -65,4 +42,3 @@ jobs:
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
-Create main.yml · honeykwak/docker-ci@0e12149
