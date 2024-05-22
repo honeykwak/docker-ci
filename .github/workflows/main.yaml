@@ -6,10 +6,6 @@ on:
       - 'master'
     tags:
       - '**'
-  workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   push:
@@ -18,7 +14,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-  
+
       - name: Docker meta
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v1
@@ -27,7 +23,6 @@ jobs:
           tag-semver: |
             {{version}}
             {{major}}.{{minor}}
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -47,18 +42,3 @@ jobs:
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
-  
-      - name: Debug Docker Meta Outputs
-        run: echo "Docker meta tags: ${{ steps.docker_meta.outputs.tags }}"
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.docker_meta.outputs.tags }}
-          release_name: Release ${{ steps.docker_meta.outputs.tags }}
-          draft: false
-          prerelease: false
-
