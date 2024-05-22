@@ -23,6 +23,7 @@ jobs:
           tag-semver: |
             {{version}}
             {{major}}.{{minor}}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -42,3 +43,17 @@ jobs:
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
+
+      - name: Set up Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Update kustomization.yaml
+        run: |
+          cd k8s
+          kustomize edit set image honeykwak/grayround=${{ steps.docker_meta.outputs.tags }}
+          git add kustomization.yaml
+          git commit -m "Update image to ${{ steps.docker_meta.outputs.tags }}"
+          git push
+
