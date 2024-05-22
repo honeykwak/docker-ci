@@ -23,8 +23,11 @@ jobs:
         id: new_tag
         run: |
           LATEST_TAG=${{ steps.latest_tag.outputs.tag }}
-          IFS='.' read -ra ADDR <<< "$LATEST_TAG"
-          NEW_VERSION=$(echo "${ADDR[0]}.$((${ADDR[1]} + 1))")
+          # 'v' 접두사를 제거하고 버전 번호 분리
+          VERSION_NUMBER=${LATEST_TAG#v}
+          IFS='.' read -ra ADDR <<< "$VERSION_NUMBER"
+          # 부버전 번호를 1 증가시키고, 'v' 접두사를 다시 추가
+          NEW_VERSION="v$(echo "${ADDR[0]}.$((${ADDR[1]} + 1))")"
           echo ::set-output name=version::$NEW_VERSION
         shell: bash
 
@@ -34,6 +37,7 @@ jobs:
         with:
           context: .
           push: true
+          # 태그에 v 접두사를 포함하여 새 버전을 적용합니다.
           tags: honeykwak/grayround:${{ steps.new_tag.outputs.version }}
           labels: ${{ steps.docker_meta.outputs.labels }}
 
@@ -59,8 +63,8 @@ jobs:
       - name: Commit and push changes
         if: steps.check_file.outputs.changed == 'true'
         run: |
-          git config --global user.name 'testing'
-          git config --global user.email 'test@gmail.com'
+          git config --global user.name 'Your Name'
+          git config --global user.email 'your.email@example.com'
           git add grayround.yaml
           git commit -m "Update grayround.yaml with new image tag ${{ steps.new_tag.outputs.version }}"
           git push origin master
