@@ -8,7 +8,9 @@ on:
       - '**'
 
 jobs:
-  push:
+  detect-and-deploy:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
@@ -52,7 +54,7 @@ jobs:
       - name: Update kustomization.yaml
         run: |
           cd k8s
-          kustomize edit set image honeykwak/grayround=${{ steps.docker_meta.outputs.tags }}
+          kustomize edit set image honeykwak/grayround:${{ steps.docker_meta.outputs.tags }}
           git add kustomization.yaml
           git commit -m "Update image to ${{ steps.docker_meta.outputs.tags }}"
           git push
